@@ -1,0 +1,122 @@
+.image {
+  canvas {
+    max-width: 100%;
+  }
+
+  &[data-effect="monochrome"] {
+    mix-blend-mode: luminosity;
+  }
+
+  &[data-effect="luminosity"] {
+    mix-blend-mode: luminosity;
+  }
+
+  &[data-effect="lighten"] {
+    mix-blend-mode: lighten;
+  }
+
+  &[data-effect="multiply"] {
+    mix-blend-mode: multiply;
+  }
+
+  &[data-effect="screen"] {
+    mix-blend-mode: screen;
+  }
+
+  &[data-effect="overlay"] {
+    mix-blend-mode: overlay;
+  }
+
+  &[data-effect="darken"] {
+    mix-blend-mode: darken;
+  }
+
+  &[data-effect="color-dodge"] {
+    mix-blend-mode: color-dodge;
+  }
+
+  &[data-effect="color-burn"] {
+    mix-blend-mode: color-burn;
+  }
+
+  &[data-effect="hard-light"] {
+    mix-blend-mode: hard-light;
+  }
+
+  &[data-effect="soft-light"] {
+    mix-blend-mode: soft-light;
+  }
+
+  &[data-effect="difference"] {
+    mix-blend-mode: difference;
+  }
+
+  &[data-effect="exclusion"] {
+    mix-blend-mode: exclusion;
+  }
+
+  &[data-effect="hue"] {
+    mix-blend-mode: hue;
+  }
+
+  &[data-effect="saturation"] {
+    mix-blend-mode: saturation;
+  }
+
+  &[data-effect="color"] {
+    mix-blend-mode: color;
+  }
+}
+
+.progressbar {
+  &::after {
+    content: "";
+    animation: loadingdots 1.5s ease-in infinite;
+  }
+}
+
+@keyframes loadingdots {
+  0% {
+    content: "";
+  }
+
+  10% {
+    content: ".";
+  }
+
+  20% {
+    content: "..";
+  }
+
+  30% {
+    content: "...";
+  }
+
+  40% {
+    content: "....";
+  }
+
+  50% {
+    content: ".....";
+  }
+
+  60% {
+    content: "......";
+  }
+
+  70% {
+    content: ".......";
+  }
+
+  80% {
+    content: "........";
+  }
+
+  90% {
+    content: ".........";
+  }
+
+  100% {
+    content: "";
+  }
+}

@@ -1,5 +1,5 @@
-import React, { Component, RefObject, ReactElement, } from "react";
-import "./style.scss";
+import { type HTMLProps, useCallback, useEffect, useRef, useState } from "react";
+import styles from "./bitmap.module.css";
 
 export interface BitmapProps {
     src: string;
@@ -7,11 +7,6 @@ export interface BitmapProps {
     alt?: string;
     autocomplete?: boolean;
     onComplete: () => void; // event called on completion
-}
-
-interface BitmapState {
-    loading: boolean;
-    image: HTMLImageElement;
 }
 
 const TICK = 150;
@@ -30,110 +25,80 @@ const STEPS = [
     1.00,
 ];
 
-class Bitmap extends Component<BitmapProps, BitmapState> {
-    private _canvasRef: RefObject<HTMLCanvasElement> = null;
-    private _animateTimerId: number = null;
-    private _currentStep = 0;
+function resampleImage(image: HTMLImageElement, scalingFacttor: number, canvas: HTMLCanvasElement) {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    constructor(props: BitmapProps) {
-        super(props);
+    const w = image.width;
+    const h = image.height;
 
-        this._canvasRef = React.createRef<HTMLCanvasElement>();
-        const loading = !this.props.autocomplete;
+    const dw = w * scalingFacttor;
+    const dh = h * scalingFacttor;
 
-        this.state = {
-            loading,
-            image: new Image(),
-        };
-    }
+    // turn off smoothing to ensure it's pixelated
+    ctx.imageSmoothingEnabled = false;
+    // shrink the image
+    ctx.drawImage(image, 0, 0, dw, dh);
+    // then draw the above bitmap at the expected image size without resampling
+    ctx.drawImage(canvas, 0, 0, dw, dh, 0, 0, w, h);
 
-    public render(): ReactElement {
-        const { className } = this.props;
-        const { loading } = this.state;
-        const css = ["__image__", className ? className : null].join(" ").trim();
-
-        return (
-            <div className={css}>
-                {loading && <div className="progressbar" />}
-                <canvas ref={this._canvasRef} />
-            </div>
-        );
-    }
-
-    public componentDidMount(): void {
-        this._loadImage();
-    }
-
-    private _resampleImage(resolution: number): void {
-        const { image, } = this.state;
-        const canvas = this._canvasRef.current;
-        const ctx = canvas.getContext("2d");
-
-        const w = image.width;
-        const h = image.height;
-
-        const dw = w * resolution;
-        const dh = h * resolution;
-
-        // trun off smoothing to ensure it's pixelated
-        ctx.imageSmoothingEnabled = false;
-        // shrink the image
-        ctx.drawImage(image, 0, 0, dw, dh);
-        // then draw the above bitmap at then expected image size without resampling
-        ctx.drawImage(canvas, 0, 0, dw, dh, 0, 0, w, h);
-    }
-
-    private _clearAnimationTimer = () => {
-        if (this._animateTimerId) {
-            window.clearInterval(this._animateTimerId);
-            this._animateTimerId = null;
-        }
-    };
-
-    private _animate(): void {
-        const { onComplete, } = this.props;
-
-        this._clearAnimationTimer();
-        this._animateTimerId = window.setInterval(() => {
-            if (this._currentStep < STEPS.length) {
-                this._resampleImage(STEPS[this._currentStep]);
-                this._currentStep++;
-            } else {
-                this._clearAnimationTimer();
-                onComplete && onComplete();
-            }
-        }, TICK);
-    }
-
-    private _loadImage(): void {
-        const { autocomplete, onComplete, src, } = this.props;
-        const { image } = this.state;
-        const canvas = this._canvasRef.current;
-        const ctx = canvas.getContext("2d");
-
-        if (ctx && image) {
-            image.onload = () => {
-                // resize the canvas element
-                const w = image.width;
-                const h = image.height;
-
-                // todo: max dimensions
-                // make sure width is no larger than container width
-                canvas.width = w;
-                canvas.height = h;
-
-                if (!autocomplete) {
-                    this.setState({
-                        loading: false,
-                    }, () => this._animate());
-                } else {
-                    ctx.drawImage(image, 0, 0);
-                    onComplete && onComplete();
-                }
-            };
-            image.src = src;
-        }
-    }
 }
 
-export default Bitmap;
+export const Bitmap = (props: BitmapProps & HTMLProps<HTMLDivElement>) => {
+    const { autocomplete, onComplete, src, className, alt, ...elementProps } = props;
+
+    const animationRef = useRef<number | undefined>(undefined);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const image = useRef(new Image());
+    const [loading, setLoading] = useState(!props.autocomplete);
+
+    const animate = useCallback(() => {
+        let currentStep = 0;
+
+        const animateStep = () => {
+            if (currentStep < STEPS.length) {
+                if (!canvasRef.current || !image.current) {
+                    console.error("Canvas or image not ready for resampling.");
+                    return;
+                }
+                resampleImage(image.current, STEPS[currentStep], canvasRef.current);
+                currentStep++;
+            } else {
+                    window.clearInterval(animationRef.current);
+                    animationRef.current = undefined;
+                onComplete?.();
+            }
+        };
+
+        animationRef.current = window.setInterval(animateStep, TICK);
+    }, [onComplete]);
+    
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        const ctx = canvas?.getContext("2d");
+
+        if (canvas && ctx && image.current) {
+            image.current.onload = () => {
+                canvas.width = image.current.width;
+                canvas.height = image.current.height;
+
+                if (!props.autocomplete) {
+                    setLoading(false);
+                    animate();
+                } else {
+                    ctx.drawImage(image.current, 0, 0);
+                    props.onComplete?.();
+                }
+            }
+
+            image.current.src = src;
+        };
+    }, [src, autocomplete, onComplete, animate]);
+
+    return (
+        <div className={styles.image} data-effect={className}>
+            {loading && <div className={styles.progressbar} />}
+            <canvas ref={canvasRef}>{alt || null}</canvas>
+        </div>
+    );
+}

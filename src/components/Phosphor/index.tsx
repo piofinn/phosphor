@@ -10,7 +10,7 @@ import { nanoid } from "nanoid";
 import Teletype from "../Teletype";
 import Link from "../Link";
 import Text from "../Text";
-import Bitmap from "../Bitmap";
+import { Bitmap } from "../Bitmap";
 import Prompt, { PROMPT_DEFAULT } from "../Prompt";
 import Toggle from "../Toggle";
 
